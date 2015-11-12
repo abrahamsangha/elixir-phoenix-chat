@@ -2,39 +2,53 @@
 
 // Import dependencies
 
-//require("../../../deps/phoenix_html/web/static/js/phoenix_html")
-
 // Import local files
-//
-// Local files can be imported directly using relative
-// paths "./socket" or full ones "web/static/js/socket".
 
-//import socket from "./socket"
-require("./socket")
-//import socket from "web/static/js/socket"
-//require("../vendor/jquery-1.11.3");
+import chan from "./socket"
+import "phoenix_html"
+var React = require("react")
+// import "react-dom"
 
-phoenixHtml();
+var App = React.createClass({
+  componentDidMount: function() {
+    chan.on("new_msg", payload => {
+      this.publishMessage(payload);
+    })
+  },
+  getInitialState: function() {
+    return {messages: ["Hello"]};
+  },
 
-let chatInput = $("#chat-input")
-let messagesContainer = $("#messages")
+  publishMessage: function (payload) {
+    let messages = this.state.messages;
+    messages.push(payload.body)
+    this.setState({messages: messages});
+  },
 
-socket.connect()
-let chan = socket.channel("rooms:lobby", {})
-chan.join()
-  .receive("ok", resp => { console.log("Joined successfully", resp) })
-  .receive("error", resp => { console.log("Unable to join", resp) })
+  onKeyPress: function(event) {
+    if(event.key === "Enter") {
+      chan.push("new_msg", {body: event.target.value});
+    }
+  },
 
-chatInput.on("keypress", event => {
-  if(event.keyCode === 13) {
-    console.log("enter pressed")
-    chan.push("new_msg", {body: chatInput.val()})
-    chatInput.val("")
+  render: function() {
+    let messages = this.state.messages;
+    return (
+      <div className="jumbotron">
+        <div id="messages">
+          {
+            messages.map(function(element) {
+              return <div>{element}</div>;
+            })
+          }
+        </div>
+        <input id="chat-input" type="text" onKeyPress={this.onKeyPress}></input>
+      </div>
+    );
   }
-})
+});
 
-chan.on("new_msg", payload => {
-  messagesContainer.append("<br/>" + Date.now  + payload.body)
-})
-
-
+React.render(
+  <App />,
+  document.getElementById('messages')
+);
