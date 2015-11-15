@@ -1,6 +1,8 @@
 defmodule Chat.RoomChannel do
   use Chat.Web, :channel
 
+  {:ok, agent} = Agent.start_link fn -> [] end
+
   def join("rooms:lobby", auth_msg, socket) do
     if authorized?(auth_msg) do
       {:ok, socket}
@@ -11,6 +13,12 @@ defmodule Chat.RoomChannel do
 
   def handle_in("new_msg", %{"body" => body}, socket) do
     broadcast! socket, "new_msg", %{body: body}
+    Agent.update(agent, fn list -> [body|list] end)
+    {:noreply, socket}
+  end
+
+  def handle_in("new_user", %{"name" => name}, socket) do
+    broadcast! socket, "new_user", %{name: name}
     {:noreply, socket}
   end
 

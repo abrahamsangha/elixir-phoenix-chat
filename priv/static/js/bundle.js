@@ -65,14 +65,15 @@
 	  displayName: "App",
 
 	  componentDidMount: function componentDidMount() {
-	    var _this = this;
-
-	    _socket2["default"].on("new_msg", function (payload) {
-	      _this.publishMessage(payload);
-	    });
+	    // chan.on("new_msg", payload => {
+	    //   this.publishMessage(payload);
+	    // })
 	  },
 	  getInitialState: function getInitialState() {
-	    return { messages: ["Hello"] };
+	    return {
+	      messages: ["Hello"],
+	      signedIn: false
+	    };
 	  },
 
 	  publishMessage: function publishMessage(payload) {
@@ -81,9 +82,33 @@
 	    this.setState({ messages: messages });
 	  },
 
+	  publishNewUser: function publishNewUser(payload) {
+	    var messages = this.state.messages;
+	    messages.push(payload.name + " has entered");
+	    this.setState({ messages: messages });
+	  },
+
 	  onKeyPress: function onKeyPress(event) {
 	    if (event.key === "Enter") {
-	      _socket2["default"].push("new_msg", { body: event.target.value });
+	      var _name = this.state.name;
+	      _socket2["default"].push("new_msg", { body: _name + ": " + event.target.value });
+	    }
+	  },
+
+	  signIn: function signIn(event) {
+	    var _this = this;
+
+	    if (event.key === "Enter") {
+	      var _name2 = event.target.value;
+	      _socket2["default"].on("new_msg", function (payload) {
+	        _this.publishMessage(payload);
+	      });
+	      this.setState({ name: _name2 });
+	      _socket2["default"].push("new_user", { name: _name2 });
+	      _socket2["default"].on("new_user", function (payload) {
+	        _this.publishNewUser(payload);
+	      });
+	      this.setState({ signedIn: true });
 	    }
 	  },
 
@@ -91,8 +116,8 @@
 	    var messages = this.state.messages;
 	    return React.createElement(
 	      "div",
-	      { className: "jumbotron" },
-	      React.createElement(
+	      { className: "main" },
+	      !!this.state.signedIn && React.createElement(
 	        "div",
 	        { id: "messages" },
 	        messages.map(function (element) {
@@ -103,7 +128,17 @@
 	          );
 	        })
 	      ),
-	      React.createElement("input", { id: "chat-input", type: "text", onKeyPress: this.onKeyPress })
+	      !!this.state.signedIn && React.createElement(
+	        "div",
+	        null,
+	        React.createElement("input", { id: "chat-input", onKeyPress: this.onKeyPress })
+	      ),
+	      !this.state.signedIn && React.createElement(
+	        "div",
+	        { id: "sign-in" },
+	        "Name",
+	        React.createElement("input", { onKeyPress: this.signIn })
+	      )
 	    );
 	  }
 	});
